@@ -33,5 +33,5 @@ def accelerometer_data_handler(jsonData):
     print("")
 
 def sensor_Data_Handler(Topic, jsonData):
-    if Topic == "aichurok/accelerometer/data":
+    if Topic == "ayush/accelerometer/data":
         accelerometer_data_handler(jsonData)
