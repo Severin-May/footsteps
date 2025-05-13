@@ -18,58 +18,64 @@
 
   <div id="chart"></div>
 
-  <script>
-    const ws = new WebSocket("ws://localhost:8765");
-    const countEl = document.getElementById("count");
-    const tsEl = document.getElementById("timestamp");
+<script>
+  const ws = new WebSocket("ws://localhost:8765");
+  const countEl = document.getElementById("count");
+  const tsEl = document.getElementById("timestamp");
 
-    const timeData = [];
-    const stepData = [];
+  const timeMap = new Map();
 
-    Plotly.newPlot("chart", [{
-      x: [],
-      y: [],
-      type: "scatter",
-      mode: "lines+markers",
-      line: { color: "blue" }
-    }], {
-      title: "Step Count Over Time",
-      xaxis: { title: "Timestamp" },
-      yaxis: { title: "Step Count" }
-    });
+  // ✅ Add static historical data
+  timeMap.set("Fri, May 10", 52);
+  timeMap.set("Sun, May 12", 64);
 
-    ws.onopen = () => {
-      console.log("Connected to WebSocket server");
-    };
+  Plotly.newPlot("chart", [{
+    x: Array.from(timeMap.keys()),
+    y: Array.from(timeMap.values()),
+    type: "bar",
+    marker: { color: "darkblue" },
+    width: 0.4 // ✔ Thinner bars
+  }], {
+    title: "Step Count Over Time",
+    xaxis: {
+      title: "Day & Date",
+      tickangle: -45,
+      automargin: true
+    },
+    yaxis: {
+      title: "Step Count",
+      automargin: true
+    },
+    margin: { l: 60, r: 30, t: 50, b: 100 },
+    height: 500,
+    width: 950
+  });
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.step_count !== undefined && data.timestamp) {
+        countEl.textContent = data.step_count;
+        tsEl.textContent = data.timestamp;
 
-        if (data.step_count !== undefined && data.timestamp) {
-          countEl.textContent = data.step_count;
-          tsEl.textContent = data.timestamp;
+        const dateKey = new Date(data.timestamp).toLocaleDateString("en-US", {
+          weekday: "short", month: "short", day: "numeric"
+        });
 
-          timeData.push(data.timestamp);
-          stepData.push(data.step_count);
+        // 🆕 Overwrite if exists
+        timeMap.set(dateKey, data.step_count);
 
-          Plotly.update("chart", {
-            x: [timeData],
-            y: [stepData]
-          });
-        }
-      } catch (e) {
-        console.error("Invalid JSON received:", event.data, e);
+        // Update chart
+        Plotly.update("chart", {
+          x: [Array.from(timeMap.keys())],
+          y: [Array.from(timeMap.values())]
+        });
       }
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    ws.onerror = (err) => {
+    } catch (err) {
       console.error("WebSocket error:", err);
-    };
-  </script>
+    }
+  };
+</script>
+
 </body>
 </html>
